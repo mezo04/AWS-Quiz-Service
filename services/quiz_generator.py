@@ -1,4 +1,3 @@
-# /project-root/services/quiz_generator.py
 from sqlalchemy.orm import Session
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import OpenAI
@@ -9,7 +8,7 @@ import uuid
 import logging
 from datetime import datetime
 
-from models.quiz import Quiz
+from models.quiz import Quiz, Document
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -84,10 +83,32 @@ class QuizGenerator:
             raise
     
     def _get_document_content(self, document_id: str) -> str:
-        """Get document content from document service"""
-        # This would typically come from a Kafka event or API call
-        # For now, return simulated content
-        return f"Document content for {document_id}. This is sample text about machine learning. Machine learning is a subset of artificial intelligence that enables computers to learn from data without being explicitly programmed. There are three main types: supervised learning, unsupervised learning, and reinforcement learning."
+        """Get document content from AWS RDS database
+        
+        Args:
+            document_id: The unique identifier of the document
+            
+        Returns:
+            The document content as a string
+            
+        Raises:
+            ValueError: If document is not found in the database
+        """
+        try:
+            # Query the document from RDS database
+            document = self.db.query(Document).filter(
+                Document.document_id == document_id
+            ).first()
+            
+            if not document:
+                raise ValueError(f"Document {document_id} not found in RDS database")
+            
+            logger.info(f"Successfully retrieved document {document_id} from RDS database")
+            return document.document_content
+            
+        except Exception as e:
+            logger.error(f"Failed to fetch document from RDS: {e}")
+            raise
     
     def _generate_questions(
         self,

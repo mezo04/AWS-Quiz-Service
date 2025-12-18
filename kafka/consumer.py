@@ -1,4 +1,3 @@
-# /project-root/kafka/consumer.py
 from aiokafka import AIOKafkaConsumer
 import json
 import asyncio

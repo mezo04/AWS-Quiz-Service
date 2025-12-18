@@ -1,4 +1,3 @@
-# /project-root/main.py
 from contextlib import asynccontextmanager
 import asyncio
 from fastapi import FastAPI

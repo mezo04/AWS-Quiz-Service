@@ -1,4 +1,3 @@
-# /project-root/kafka/producer.py
 from aiokafka import AIOKafkaProducer
 import json
 import logging

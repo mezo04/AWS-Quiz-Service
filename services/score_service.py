@@ -1,4 +1,3 @@
-# /project-root/services/score_service.py
 from typing import List, Dict, Any, Tuple
 import logging
 from pydantic import BaseModel
