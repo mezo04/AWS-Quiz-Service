@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime, Float, Boolean, ForeignKey, JSON, Text
+from sqlalchemy import Column, Integer, String, DateTime, Float, ForeignKey, JSON, Text
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 import uuid
@@ -9,10 +9,14 @@ class Document(Base):
     __tablename__ = "documents"
     
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    document_id = Column(String, unique=True, nullable=False, index=True)
-    document_content = Column(Text, nullable=False)
+    filename = Column(String, nullable=False)
+    s3_key = Column(String, nullable=False)
+    s3_url = Column(String, nullable=False)
+    content_length = Column(Integer, nullable=False)
+    summary_s3_key = Column(String, nullable=False)
+    summary_s3_url = Column(String, nullable=False)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+    processed_at = Column(DateTime, server_default=func.now(), nullable=False)
 
 class Quiz(Base):
     __tablename__ = "quizzes"
@@ -21,11 +25,8 @@ class Quiz(Base):
     document_id = Column(String, nullable=False, index=True)
     user_id = Column(String, nullable=False, index=True)
     question_count = Column(Integer, nullable=False, default=0)
-    metadata = Column(JSON, nullable=True)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    
-    # Non-database field for S3 data
-    questions = None
+    questions = None  # This will be stored in S3, not in the DB
     
     attempts = relationship("QuizAttempt", back_populates="quiz", cascade="all, delete-orphan")
 
@@ -40,5 +41,4 @@ class QuizAttempt(Base):
     max_score = Column(Float, nullable=False)
     details = Column(JSON, nullable=True)
     completed_at = Column(DateTime, server_default=func.now(), nullable=False)
-    
     quiz = relationship("Quiz", back_populates="attempts")

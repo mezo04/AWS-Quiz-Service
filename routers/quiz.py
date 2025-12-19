@@ -18,7 +18,7 @@ from services.quiz_generator import QuizGenerator
 from services.score_service import ScoreService
 from models.quiz import Quiz, QuizAttempt
 from s3_client import s3_client
-from kafka.producer import kafka_producer
+from kafka_module.producer import KafkaProducer
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -44,17 +44,12 @@ async def generate_quiz(
             question_count=request.question_count,
             question_types=request.question_types
         )
-        
+
         # Store quiz template in S3
-        quiz_data = {
-            "id": str(quiz.id),
-            "questions": quiz.questions,
-            "metadata": quiz.metadata
-        }
-        s3_client.upload_quiz_template(str(quiz.id), quiz_data)
+        s3_client.upload_quiz_template(quiz)
         
         # Produce Kafka event
-        await kafka_producer.send_quiz_generated(
+        await KafkaProducer.send_quiz_generated(
             quiz_id=str(quiz.id),
             document_id=request.document_id,
             user_id=x_user_id

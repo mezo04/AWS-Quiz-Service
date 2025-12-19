@@ -8,6 +8,7 @@ import uuid
 import logging
 from datetime import datetime
 
+from s3_client import s3_client
 from models.quiz import Quiz, Document
 from config import settings
 
@@ -44,9 +45,6 @@ class QuizGenerator:
     ) -> Quiz:
         """Generate quiz questions from a document"""
         try:
-            # In a real implementation, we would fetch the document content
-            # from a document service via Kafka event or API
-            # For now, we'll simulate document content
             document_content = self._get_document_content(document_id)
             
             if not document_content:
@@ -65,16 +63,13 @@ class QuizGenerator:
                 document_id=document_id,
                 user_id=user_id,
                 question_count=len(questions),
-                metadata={
-                    "question_types": question_types,
-                    "generated_at": datetime.utcnow().isoformat()
-                }
+                created_at=datetime.utcnow()
             )
             self.db.add(quiz)
             self.db.commit()
             
             # Store questions in quiz object for S3 storage
-            quiz.questions = [q.dict() for q in questions]
+            quiz.questions = [q.model_dump() for q in questions]
             
             return quiz
             
@@ -97,14 +92,15 @@ class QuizGenerator:
         try:
             # Query the document from RDS database
             document = self.db.query(Document).filter(
-                Document.document_id == document_id
+                Document.id == document_id
             ).first()
             
             if not document:
                 raise ValueError(f"Document {document_id} not found in RDS database")
             
+            document_content = s3_client.get_document_content(document)
             logger.info(f"Successfully retrieved document {document_id} from RDS database")
-            return document.document_content
+            return document_content
             
         except Exception as e:
             logger.error(f"Failed to fetch document from RDS: {e}")
@@ -122,12 +118,13 @@ class QuizGenerator:
             
             prompt_template = PromptTemplate(
                 template="""Generate {count} quiz questions from the following content.
-                Include these question types: {types}.
+                Include these question types only: {types}.
                 
                 Content: {content}
                 
+                Format the output as a JSON object matching this structure:
                 {format_instructions}
-                
+                Ensure questions are clear and concise.
                 Provide a variety of question difficulties and ensure explanations are educational.""",
                 input_variables=["content", "count", "types"],
                 partial_variables={"format_instructions": parser.get_format_instructions()}
@@ -147,7 +144,6 @@ class QuizGenerator:
             
         except Exception as e:
             logger.error(f"Failed to generate questions: {e}")
-            # Fallback to simple question generation
             return self._generate_fallback_questions(content, count)
     
     def _generate_fallback_questions(self, content: str, count: int) -> List[Question]:

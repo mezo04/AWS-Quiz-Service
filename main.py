@@ -6,8 +6,7 @@ import logging
 
 from database import engine, Base
 from routers import quiz
-from kafka.consumer import start_kafka_consumer, stop_kafka_consumer
-from config import settings
+from kafka_module.consumer import start_kafka_consumer, stop_kafka_consumer
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -52,4 +51,5 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    import asyncio
+    asyncio.run(uvicorn.run(app, host="0.0.0.0", port=8000))

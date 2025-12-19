@@ -17,14 +17,17 @@ class S3Client:
         )
         self.bucket_name = settings.s3_bucket_name
     
-    def upload_quiz_template(self, quiz_id: str, quiz_data: Dict[str, Any]) -> bool:
+    def upload_quiz(self, quiz) -> bool:
         """Upload quiz template to S3"""
         try:
-            key = f"quiz-templates/{quiz_id}.json"
+            key = f"quiz-templates/{quiz.id}.json"
             self.s3_client.put_object(
                 Bucket=self.bucket_name,
                 Key=key,
-                Body=json.dumps(quiz_data),
+                Body=json.dumps({
+                    "id": str(quiz.id),
+                    "questions": quiz.questions
+                }),
                 ContentType='application/json'
             )
             logger.info(f"Uploaded quiz template to s3://{self.bucket_name}/{key}")
@@ -32,8 +35,8 @@ class S3Client:
         except ClientError as e:
             logger.error(f"Failed to upload quiz template: {e}")
             return False
-    
-    def get_quiz_template(self, quiz_id: str) -> Optional[Dict[str, Any]]:
+
+    def get_quiz(self,quiz_id: str) -> Optional[Dict[str, Any]]:
         """Retrieve quiz template from S3"""
         try:
             key = f"quiz-templates/{quiz_id}.json"
@@ -41,12 +44,26 @@ class S3Client:
                 Bucket=self.bucket_name,
                 Key=key
             )
-            quiz_data = json.loads(response['Body'].read().decode('utf-8'))
+            content = response['Body'].read().decode('utf-8')
+            quiz_data = json.loads(content)
             return quiz_data
         except ClientError as e:
-            logger.error(f"Failed to get quiz template: {e}")
+            logger.error(f"Failed to get quiz template from S3: {e}")
             return None
     
+    def get_document_content(self, document) -> str:
+        """Retrieve document content from S3 given a Document model instance"""
+        try:
+            response = self.s3_client.get_object(
+                Bucket="document-reader-storage",
+                Key=document.summary_s3_key
+            )
+            content = response['Body'].read().decode('utf-8')
+            return content
+        except ClientError as e:
+            logger.error(f"Failed to get document content from S3: {e}")
+            return ""
+
     def delete_quiz_template(self, quiz_id: str) -> bool:
         """Delete quiz template from S3"""
         try:
