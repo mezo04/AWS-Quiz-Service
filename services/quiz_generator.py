@@ -1,7 +1,6 @@
 from sqlalchemy.orm import Session
-from langchain_core.prompts import PromptTemplate
-from langchain_openai import OpenAI
-from langchain_core.output_parsers import PydanticOutputParser
+from langchain.prompts import PromptTemplate
+from langchain.llms.openai import OpenAI
 from pydantic import BaseModel, Field
 from typing import List, Any, Optional
 import uuid
@@ -114,33 +113,53 @@ class QuizGenerator:
     ) -> List[Question]:
         """Generate questions using LangChain and OpenAI"""
         try:
-            parser = PydanticOutputParser(pydantic_object=GeneratedQuiz)
-            
             prompt_template = PromptTemplate(
                 template="""Generate {count} quiz questions from the following content.
                 Include these question types only: {types}.
                 
                 Content: {content}
                 
-                Format the output as a JSON object matching this structure:
-                {format_instructions}
+                Format the output as a JSON object with this structure:
+                {{
+                    "questions": [
+                        {{
+                            "id": "unique_id",
+                            "type": "multiple_choice|true_false|short_answer",
+                            "text": "question text",
+                            "options": ["option1", "option2"],
+                            "correct_answer": "answer",
+                            "explanation": "explanation"
+                        }}
+                    ]
+                }}
                 Ensure questions are clear and concise.
                 Provide a variety of question difficulties and ensure explanations are educational.""",
-                input_variables=["content", "count", "types"],
-                partial_variables={"format_instructions": parser.get_format_instructions()}
+                input_variables=["content", "count", "types"]
             )
             
-            # Use the LCEL pipeline style: PromptTemplate | LLM
-            chain = prompt_template | self.llm
+            prompt = prompt_template.format(
+                content=content,
+                count=count,
+                types=", ".join(types)
+            )
 
-            response = chain.invoke({
-                "content": content,
-                "count": count,
-                "types": ", ".join(types)
-            })
+            response = self.llm(prompt)
             
-            parsed = parser.parse(response)
-            return parsed.questions
+            # Parse JSON response
+            import json
+            try:
+                json_start = response.find('{')
+                json_end = response.rfind('}') + 1
+                if json_start != -1 and json_end > json_start:
+                    json_str = response[json_start:json_end]
+                    parsed_data = json.loads(json_str)
+                    questions_data = parsed_data.get('questions', [])
+                    questions = [Question(**q) for q in questions_data]
+                    return questions
+            except (json.JSONDecodeError, KeyError, TypeError) as parse_error:
+                logger.warning(f"Failed to parse LLM response as JSON: {parse_error}")
+            
+            return self._generate_fallback_questions(content, count)
             
         except Exception as e:
             logger.error(f"Failed to generate questions: {e}")
