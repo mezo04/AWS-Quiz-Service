@@ -22,7 +22,8 @@ class S3Client:
         """Upload document content to S3"""
         try:
             encrypted_content = crypto_instance.encrypt(content)
-            key = f"documents/{document_id}.txt"
+            encrypted_document_id = crypto_instance.encrypt(document_id)
+            key = f"documents/{encrypted_document_id}.txt"
             self.s3_client.put_object(
                 Bucket=self.bucket_name,
                 Key=key,
@@ -44,7 +45,8 @@ class S3Client:
                     "questions": quiz.questions
                 })
             encrpted_body = crypto_instance.encrypt(body)
-            key = f"quiz-templates/{quiz.id}.json"
+            encrpted_quiz_id = crypto_instance.encrypt(str(quiz.id))
+            key = f"quiz-templates/{encrpted_quiz_id}.json"
             self.s3_client.put_object(
                 Bucket=self.bucket_name,
                 Key=key,
@@ -60,7 +62,8 @@ class S3Client:
     def get_quiz(self,quiz_id: str) -> Optional[Dict[str, Any]]:
         """Retrieve quiz template from S3"""
         try:
-            key = f"quiz-templates/{quiz_id}.json"
+            encrypted_quiz_id = crypto_instance.encrypt(quiz_id)
+            key = f"quiz-templates/{encrypted_quiz_id}.json"
             response = self.s3_client.get_object(
                 Bucket=self.bucket_name,
                 Key=key
@@ -75,9 +78,10 @@ class S3Client:
     def get_document_content(self, document_id) -> str:
         """Retrieve document content from S3 given a Document model instance"""
         try:
+            encrypted_document_id = crypto_instance.encrypt(document_id)
             response = self.s3_client.get_object(
                 Bucket=self.bucket_name,
-                Key=f"documents/{document_id}.txt"
+                Key=f"documents/{encrypted_document_id}.txt"
             )
             content = crypto_instance.decrypt(response['Body'].read().decode('utf-8'))
             return content
@@ -88,7 +92,8 @@ class S3Client:
     def delete_quiz_template(self, quiz_id: str) -> bool:
         """Delete quiz template from S3"""
         try:
-            key = f"quiz-templates/{quiz_id}.json"
+            encrypted_quiz_id = crypto_instance.encrypt(quiz_id)
+            key = f"quiz-templates/{encrypted_quiz_id}.json"
             self.s3_client.delete_object(
                 Bucket=self.bucket_name,
                 Key=key
