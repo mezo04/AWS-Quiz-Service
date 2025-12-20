@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     
     # Application
     DEBUG: bool = False
+
+    # Encryption Key
+    ENCRYPTION_KEY: str = "your_password_here"
     
     @property
     def s3_bucket_name(self):

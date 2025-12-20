@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 import uuid
 import logging
+from encryption import crypto_instance
 
 from database import get_db
 from schemas.quiz import (
@@ -83,7 +84,7 @@ def get_quiz(
         
         return QuizResponse(
             id=quiz.id,
-            document_id=quiz.document_id,
+            document_id=crypto_instance.decrypt(quiz.document_id),
             questions=quiz_data["questions"],
             created_at=quiz.created_at
         )
@@ -103,6 +104,7 @@ def submit_quiz(
     """Submit quiz responses"""
     try:
         # Get quiz from database
+
         quiz = db.query(Quiz).filter(Quiz.id == quiz_id).first()
         if not quiz:
             raise HTTPException(status_code=404, detail="Quiz not found")
@@ -122,8 +124,8 @@ def submit_quiz(
         # Store attempt
         attempt = QuizAttempt(
             id=str(uuid.uuid4()),
-            quiz_id=quiz_id,
-            user_id=x_user_id,
+            quiz_id=crypto_instance.encrypt(quiz_id),
+            user_id=crypto_instance.encrypt(x_user_id),
             responses=request.responses,
             score=result.score,
             max_score=result.max_score,
@@ -154,8 +156,8 @@ def get_quiz_results(
     """Get quiz results with feedback"""
     try:
         query = db.query(QuizAttempt).filter(
-            QuizAttempt.quiz_id == quiz_id,
-            QuizAttempt.user_id == x_user_id
+            QuizAttempt.quiz_id == crypto_instance.decrypt(quiz_id),
+            QuizAttempt.user_id == crypto_instance.decrypt(x_user_id)
         )
         
         if attempt_id:
@@ -167,8 +169,8 @@ def get_quiz_results(
             raise HTTPException(status_code=404, detail="Quiz attempt not found")
         
         return QuizResultsResponse(
-            attempt_id=str(attempt.id),
-            quiz_id=str(attempt.quiz_id),
+            attempt_id=attempt.id,
+            quiz_id=crypto_instance.decrypt(attempt.quiz_id),
             score=attempt.score,
             max_score=attempt.max_score,
             passed=attempt.score >= (attempt.max_score * 0.7),  # 70% passing threshold
@@ -192,7 +194,7 @@ def get_quiz_history(
     """Get user's quiz history"""
     try:
         attempts = db.query(QuizAttempt).filter(
-            QuizAttempt.user_id == x_user_id
+            QuizAttempt.user_id == crypto_instance.encrypt(x_user_id)
         ).order_by(
             QuizAttempt.completed_at.desc()
         ).offset(offset).limit(limit).all()
@@ -200,7 +202,7 @@ def get_quiz_history(
         return [
             QuizHistoryResponse(
                 attempt_id=str(attempt.id),
-                quiz_id=str(attempt.quiz_id),
+                quiz_id=crypto_instance.decrypt(attempt.quiz_id),
                 score=attempt.score,
                 max_score=attempt.max_score,
                 passed=attempt.score >= (attempt.max_score * 0.7),
@@ -223,7 +225,7 @@ def delete_quiz(
         # Check if quiz exists and belongs to user
         quiz = db.query(Quiz).filter(
             Quiz.id == quiz_id,
-            Quiz.user_id == x_user_id
+            Quiz.user_id == crypto_instance.encrypt(x_user_id)
         ).first()
         
         if not quiz:

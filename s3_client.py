@@ -4,6 +4,7 @@ import json
 import logging
 from typing import Optional, Dict, Any
 from config import settings
+from encryption import crypto_instance
 
 logger = logging.getLogger(__name__)
 
@@ -20,11 +21,12 @@ class S3Client:
     def upload_document(self, document_id: str, content: str) -> bool: 
         """Upload document content to S3"""
         try:
+            encrypted_content = crypto_instance.encrypt(content)
             key = f"documents/{document_id}.txt"
             self.s3_client.put_object(
                 Bucket=self.bucket_name,
                 Key=key,
-                Body=content,
+                Body=encrypted_content,
                 ContentType='text/plain',
                 encode_utf8=True
             )
@@ -37,14 +39,16 @@ class S3Client:
     def upload_quiz(self, quiz) -> bool:
         """Upload quiz template to S3"""
         try:
+            body = json.dumps({
+                    "id": str(quiz.id),
+                    "questions": quiz.questions
+                })
+            encrpted_body = crypto_instance.encrypt(body)
             key = f"quiz-templates/{quiz.id}.json"
             self.s3_client.put_object(
                 Bucket=self.bucket_name,
                 Key=key,
-                Body=json.dumps({
-                    "id": str(quiz.id),
-                    "questions": quiz.questions
-                }),
+                Body=encrpted_body,
                 ContentType='application/json'
             )
             logger.info(f"Uploaded quiz template to s3://{self.bucket_name}/{key}")
@@ -61,7 +65,7 @@ class S3Client:
                 Bucket=self.bucket_name,
                 Key=key
             )
-            content = response['Body'].read().decode('utf-8')
+            content = crypto_instance.decrypt(response['Body'].read().decode('utf-8'))
             quiz_data = json.loads(content)
             return quiz_data
         except ClientError as e:
@@ -75,7 +79,7 @@ class S3Client:
                 Bucket=self.bucket_name,
                 Key=f"documents/{document_id}.txt"
             )
-            content = response['Body'].read().decode('utf-8')
+            content = crypto_instance.decrypt(response['Body'].read().decode('utf-8'))
             return content
         except ClientError as e:
             logger.error(f"Failed to get document content from S3: {e}")

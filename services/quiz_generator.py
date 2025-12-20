@@ -6,9 +6,10 @@ from typing import List, Any, Optional
 import uuid
 import logging
 from datetime import datetime
+from encryption import crypto_instance
 
 from s3_client import s3_client
-from models.quiz import Quiz, Document
+from models.quiz import Quiz
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -55,14 +56,15 @@ class QuizGenerator:
                 count=question_count,
                 types=question_types or ["multiple_choice", "true_false", "short_answer"]
             )
-            
+            question_types_str = ",".join(question_types) if question_types else "all"
             # Create quiz in database
             quiz = Quiz(
                 id=str(uuid.uuid4()),
-                document_id=document_id,
-                user_id=user_id,
-                question_count=len(questions),
-                created_at=datetime.utcnow()
+                document_id=crypto_instance.encrypt(document_id),
+                user_id=crypto_instance.encrypt(user_id),
+                question_count=crypto_instance.encrypt(str(len(questions))),
+                question_types=crypto_instance.encrypt(question_types_str),
+                created_at=datetime.now(datetime.timezone.utc)
             )
             self.db.add(quiz)
             self.db.commit()
