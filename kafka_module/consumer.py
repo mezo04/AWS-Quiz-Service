@@ -7,6 +7,7 @@ from typing import Dict, Any
 from config import settings
 from database import SessionLocal
 from services.quiz_generator import QuizGenerator
+from s3_client import S3Client
 
 logger = logging.getLogger(__name__)
 
@@ -46,20 +47,20 @@ class KafkaConsumer:
                     break
                 
                 try:
-                    await self._process_message(message.value)
+                    await self._process_message(message.topic, message.value)
                 except Exception as e:
                     logger.error(f"Failed to process message: {e}")
         except Exception as e:
             logger.error(f"Consumer error: {e}")
     
-    async def _process_message(self, message: Dict[str, Any]):
+    async def _process_message(self, topic: str, value: Dict[str, Any]):
         """Process a Kafka message"""
-        event_type = message.get("event")
+        event_type = topic
         
         if event_type == "quiz.requested":
-            await self._handle_quiz_requested(message.get("data", {}))
+            await self._handle_quiz_requested(value)
         elif event_type == "notes.generated":
-            await self._handle_notes_generated(message.get("data", {}))
+            await self._handle_notes_generated(value)
         else:
             logger.warning(f"Unknown event type: {event_type}")
     
@@ -95,9 +96,9 @@ class KafkaConsumer:
     
     async def _handle_notes_generated(self, data: Dict[str, Any]):
         """Handle notes.generated event"""
-        # This could trigger automatic quiz generation based on notes
-        # For now, just log the event
-        logger.info(f"Received notes.generated event for document {data.get('document_id')}")
+        # upload notes to S3 or process as needed
+        s3_client = S3Client()
+        s3_client.upload_notes(data.get('document_id'), data.get('summary'))
 
 # Global instance
 kafka_consumer = KafkaConsumer()

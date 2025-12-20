@@ -9,8 +9,8 @@ class Settings(BaseSettings):
     AWS_ACCESS_KEY_ID: Optional[str] = "None"
     AWS_SECRET_ACCESS_KEY: Optional[str] = "None"
 
-    AWS_REGION: str = "us-east-1"
-    S3_BUCKET_PREFIX: str = "quiz-service-storage"
+    AWS_REGION: str = "eu-north-1"
+    S3_BUCKET_PREFIX: str = "quiz-service-storage-dev1"
     ENVIRONMENT: str = "dev"
     
     # Kafka

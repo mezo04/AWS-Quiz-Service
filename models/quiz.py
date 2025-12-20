@@ -1,22 +1,9 @@
-from sqlalchemy import Column, Integer, String, DateTime, Float, ForeignKey, JSON, Text
+from sqlalchemy import Column, Integer, String, DateTime, Float, ForeignKey, JSON
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 import uuid
 
 from database import Base
-
-class Document(Base):
-    __tablename__ = "documents"
-    
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    filename = Column(String, nullable=False)
-    s3_key = Column(String, nullable=False)
-    s3_url = Column(String, nullable=False)
-    content_length = Column(Integer, nullable=False)
-    summary_s3_key = Column(String, nullable=False)
-    summary_s3_url = Column(String, nullable=False)
-    created_at = Column(DateTime, server_default=func.now(), nullable=False)
-    processed_at = Column(DateTime, server_default=func.now(), nullable=False)
 
 class Quiz(Base):
     __tablename__ = "quizzes"

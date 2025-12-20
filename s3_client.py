@@ -17,6 +17,23 @@ class S3Client:
         )
         self.bucket_name = settings.s3_bucket_name
     
+    def upload_document(self, document_id: str, content: str) -> bool: 
+        """Upload document content to S3"""
+        try:
+            key = f"documents/{document_id}.txt"
+            self.s3_client.put_object(
+                Bucket=self.bucket_name,
+                Key=key,
+                Body=content,
+                ContentType='text/plain',
+                encode_utf8=True
+            )
+            logger.info(f"Uploaded document to s3://{self.bucket_name}/{key}")
+            return True
+        except ClientError as e:
+            logger.error(f"Failed to upload document: {e}")
+            return False
+    
     def upload_quiz(self, quiz) -> bool:
         """Upload quiz template to S3"""
         try:
@@ -51,12 +68,12 @@ class S3Client:
             logger.error(f"Failed to get quiz template from S3: {e}")
             return None
     
-    def get_document_content(self, document) -> str:
+    def get_document_content(self, document_id) -> str:
         """Retrieve document content from S3 given a Document model instance"""
         try:
             response = self.s3_client.get_object(
-                Bucket="document-reader-storage",
-                Key=document.summary_s3_key
+                Bucket=self.bucket_name,
+                Key=f"documents/{document_id}.txt"
             )
             content = response['Body'].read().decode('utf-8')
             return content

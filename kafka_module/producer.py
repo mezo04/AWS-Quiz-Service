@@ -30,13 +30,10 @@ class KafkaProducer:
         """Send quiz.generated event"""
         try:
             message = {
-                "event": "quiz.generated",
-                "data": {
-                    "quiz_id": quiz_id,
-                    "document_id": document_id,
-                    "user_id": user_id,
-                    "timestamp": datetime.utcnow().isoformat()
-                }
+                "quiz_id": quiz_id,
+                "document_id": document_id,
+                "user_id": user_id,
+                "timestamp": datetime.utcnow().isoformat()
             }
             
             await self.producer.send_and_wait(

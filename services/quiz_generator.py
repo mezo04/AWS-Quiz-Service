@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
-from langchain.prompts import PromptTemplate
-from langchain.llms.openai import OpenAI
+from langchain_core.prompts import PromptTemplate
+from langchain_openai import OpenAI
 from pydantic import BaseModel, Field
 from typing import List, Any, Optional
 import uuid
@@ -77,7 +77,7 @@ class QuizGenerator:
             raise
     
     def _get_document_content(self, document_id: str) -> str:
-        """Get document content from AWS RDS database
+        """Get document content from AWS S3
         
         Args:
             document_id: The unique identifier of the document
@@ -89,20 +89,13 @@ class QuizGenerator:
             ValueError: If document is not found in the database
         """
         try:
-            # Query the document from RDS database
-            document = self.db.query(Document).filter(
-                Document.id == document_id
-            ).first()
             
-            if not document:
-                raise ValueError(f"Document {document_id} not found in RDS database")
-            
-            document_content = s3_client.get_document_content(document)
-            logger.info(f"Successfully retrieved document {document_id} from RDS database")
+            document_content = s3_client.get_document_content(document_id)
+            logger.info(f"Successfully retrieved document {document_id} from S3")
             return document_content
             
         except Exception as e:
-            logger.error(f"Failed to fetch document from RDS: {e}")
+            logger.error(f"Failed to fetch document from S3: {e}")
             raise
     
     def _generate_questions(

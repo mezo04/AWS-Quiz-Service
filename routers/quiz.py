@@ -108,7 +108,7 @@ def submit_quiz(
             raise HTTPException(status_code=404, detail="Quiz not found")
         
         # Get quiz template from S3 for answers
-        quiz_data = s3_client.get_quiz_template(quiz_id)
+        quiz_data = s3_client.get_quiz(quiz_id)
         if not quiz_data:
             raise HTTPException(status_code=404, detail="Quiz template not found")
         
