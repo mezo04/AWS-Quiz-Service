@@ -9,10 +9,10 @@ permissions:
   contents: read
 
 env:
-  AWS_REGION: us-east-1                     # change if needed
-  ECR_REPOSITORY: aws-quiz-service          # ECR repo name
-  ECS_CLUSTER: aws-quiz-service-cluster     # your ECS cluster name
-  ECS_SERVICE: aws-quiz-service-service     # your ECS service name
+  AWS_REGION: eu-north-1
+  ECR_REPOSITORY: quiz-service          
+  ECS_CLUSTER: kafka-cluster     
+  ECS_SERVICE: Quiz-service-Task-service-g6fk91fx   
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
