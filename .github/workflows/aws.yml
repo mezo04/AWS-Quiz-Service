@@ -13,7 +13,7 @@ env:
   ECR_REPOSITORY: quiz-service          
   ECS_CLUSTER: kafka-cluster     
   ECS_SERVICE: Quiz-service-Task-service-g6fk91fx   
-  IMAGE_TAG: ${{ github.sha }}
+  IMAGE_TAG: latest
 
 jobs:
   build_and_deploy:
